@@ -1,0 +1,62 @@
+# Installs the newest release, pre-releases included, with each install channel on each platform.
+name: Install
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.newest.outputs.tag }}
+    steps:
+      - id: newest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: echo "tag=$(gh api repos/${{ github.repository }}/releases --jq '.[0].tag_name')" >> "$GITHUB_OUTPUT"
+
+  script:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      TEXOMY_VERSION: ${{ needs.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v5
+      - if: ${{ runner.os != 'Windows' }}
+        run: |
+          sh install.sh
+          "$HOME/.local/bin/texomy" --version | grep -qx "texomy ${TEXOMY_VERSION#v}"
+      - if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        run: |
+          ./install.ps1
+          $installed = & "$env:LOCALAPPDATA\Programs\texomy\texomy.exe" --version
+          if ($installed -ne "texomy $($env:TEXOMY_VERSION.TrimStart('v'))") { throw "Installed $installed" }
+          if (-not ([Environment]::GetEnvironmentVariable('Path', 'User') -split ';' -contains "$env:LOCALAPPDATA\Programs\texomy")) {
+            throw 'The folder is not on the user PATH'
+          }
+
+  homebrew:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: brew install texomy/tap/texomy
+        run: |
+          eval "$($(command -v brew || echo /home/linuxbrew/.linuxbrew/bin/brew) shellenv)"
+          brew install texomy/tap/texomy
+          texomy --version
+          brew test texomy/tap/texomy

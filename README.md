@@ -12,15 +12,27 @@ Each release lists the files below and their checksums in `SHA256SUMS`. This rep
 
 ## Install
 
-macOS or Linux, latest release:
+macOS (Apple silicon) and Linux (x64, arm64), with Homebrew:
 
 ```bash
-curl -fsSL https://github.com/Texomy/texomy-releases/releases/latest/download/texomy-macos-arm64.tar.gz | tar -xz
-sudo mv texomy /usr/local/bin/
-texomy --version
+brew install texomy/tap/texomy
 ```
 
-Use the file for your platform. A file downloaded with `curl` runs as is. A file downloaded with a browser on
-macOS is blocked as unsigned: run `xattr -d com.apple.quarantine texomy` once.
+or with the install script, which puts `texomy` in `~/.local/bin`:
 
-Windows: unpack `texomy-windows-x64.zip` and put `texomy.exe` on your `PATH`.
+```bash
+curl -fsSL https://raw.githubusercontent.com/Texomy/texomy-releases/main/install.sh | sh
+```
+
+Windows (x64), in PowerShell; the script puts `texomy.exe` in `%LOCALAPPDATA%\Programs\texomy` and adds it to the
+user's `PATH`:
+
+```powershell
+irm https://raw.githubusercontent.com/Texomy/texomy-releases/main/install.ps1 | iex
+```
+
+Both scripts check the download against `SHA256SUMS`. `TEXOMY_VERSION` picks a release (`v1.2.0`; default: the latest)
+and `TEXOMY_INSTALL_DIR` the folder.
+
+A file downloaded with a browser on macOS is blocked as unsigned: run `xattr -d com.apple.quarantine texomy` once.
+Homebrew and the install script are not affected.
